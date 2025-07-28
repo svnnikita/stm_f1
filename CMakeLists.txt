@@ -5,7 +5,7 @@ set(CMAKE_TOOLCHAIN_FILE cmake/arm-none-eabi-gcc.cmake)
 
 #================================================================================
 project(es LANGUAGES CXX C ASM)
-set(DEVICE stm32f103c8t6)
+set(DEVICE STM32F103C8T6)
 
 
 #================================================================================
