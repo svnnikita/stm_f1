@@ -27,3 +27,16 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
     POST_BUILD
     COMMAND cmake -E copy ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME} ${CMAKE_BINARY_DIR}/firmware
 )
+
+# Размер прошивки (добавьте этот блок)
+find_program(SIZE_UTIL arm-none-eabi-size)
+
+if(SIZE_UTIL)
+    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+        COMMAND ${SIZE_UTIL} $<TARGET_FILE_NAME:${CMAKE_PROJECT_NAME}>
+        COMMENT "Firmware size:"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+else()
+    message(WARNING "arm-none-eabi-size not found")
+endif()
