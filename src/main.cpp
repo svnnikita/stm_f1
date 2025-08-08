@@ -1,65 +1,74 @@
 #include <libopencm3/stm32/rcc.h> 	// rcc.h - reset and clock control
 #include <libopencm3/stm32/gpio.h> 	// inputs outputs
-#include <libopencm3/stm32/timer.h>
-#include <libopencm3/cm3/nvic.h>
+#include <libopencm3/stm32/usart.h>
 
-#define PRESC 8000	// предделитель частоты работы таймера
-#define PERIOD 500	// значение, до которого считает счетчик
+#define SPEED 115200
+#define WSIZE 8
 
 // ТАКТИРОВАНИЕ
 static void clock_setup(void)
 {
 	//rcc_clock_setup_pll(&rcc_hsi_configs[RCC_CLOCK_HSI_64MHZ]);	// Разгоняем МК до 64 МГц
-	rcc_periph_clock_enable(RCC_TIM2);	// Тактирование таймера TIM1
-	rcc_periph_clock_enable(RCC_GPIOB);	// Тактирование портов GPIOB
+
+	rcc_periph_clock_enable(RCC_GPIOB);
+
+	rcc_periph_clock_enable(RCC_TIM2);		// Тактирование таймера TIM1
+	rcc_periph_clock_enable(RCC_GPIOA);		// Тактирование портов GPIOB
+	rcc_periph_clock_enable(RCC_USART2); 	
 }
 
 
-// Настройка режима вывода PB2, к которому подключен светодиод
+// Настройка режима выводов PA2 и PA3, к которым подключены линии TX и RX 
 static void gpio_setup(void)
 {	
 	gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ,
 					GPIO_CNF_OUTPUT_PUSHPULL, GPIO2);
-	
-	gpio_clear(GPIOB, GPIO2);
+
+	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+		      GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART2_TX);
 }
 
-
-// Настройка таймера
-static void timer_setup(void) 
+// Настройка UART (8-N-1)
+void usart2_setup(void)
 {
-	// Устанавливаем предделитель тактовой частоты.
-	// Значение счетчика увеличивается на единицу каждую милисекунду
-	timer_set_prescaler(TIM2, PRESC - 1);
+	/* Setup UART parameters. */
+	usart_set_baudrate(USART2, SPEED);						// скорость передачи данных
+	usart_set_databits(USART2, WSIZE);						// размер слова
+	usart_set_stopbits(USART2, USART_STOPBITS_1);			// количество стоповых битов
+	usart_set_mode(USART2, USART_MODE_TX);					// режим передачи данных
+	usart_set_parity(USART2, USART_PARITY_NONE);			// без бита контроля
+	usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);	// без управления потоком
 
-	// Период
-	// Счетчик считает до значения PERIOD - 1
-	timer_set_period(TIM2, PERIOD - 1);
-	
-	// Включение счетчика
-	timer_enable_counter(TIM2);
+	/* Finally enable the USART. */
+	usart_enable(USART2);
 }
 
-// Настройка прерываний
-void interrupt_setup(void)
-{
-	timer_enable_irq(TIM2, TIM_DIER_UIE);	// разрешаем прерывания
-	nvic_enable_irq(NVIC_TIM2_IRQ);
-}
-
-// Обработчик прерывания
-void tim2_isr(void)
-{ 
-	timer_clear_flag(TIM2, TIM_SR_UIF);
-	gpio_toggle(GPIOB,GPIO2);
-}
 
 int main() {
 	clock_setup();
 	gpio_setup();
-	timer_setup();
-	interrupt_setup();
+	usart2_setup();
 	
-	while(true){
+	// i -- используется для формирования задержки
+	// j -- счетчик, при помощи которого происходит перемещение на новую строку
+	// c -- используется для формирования символов
+	uint32_t i;
+	uint16_t j = 0, c = 0;
+
+	/* Blink the LED (PB2) on the board with every transmitted byte. */
+	while (1) {
+		gpio_toggle(GPIOB, GPIO2);				/* LED on/off */
+		usart_send_blocking(USART2, c + '0');	/* преобразуем число в символ */
+
+		c = (c == 9) ? 0 : c + 1;				/* Increment c. */
+		
+		// if ((j++ % 80) == 0) {					/* Newline after line full. */
+		// 	usart_send_blocking(USART2, '\r');
+		// 	usart_send_blocking(USART2, '\n');
+		// }
+		
+		for (i = 0; i < 4000000; i++)			/* Wait a bit. */
+			__asm__("nop");
 	}
+
 }
