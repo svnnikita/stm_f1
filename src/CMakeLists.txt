@@ -3,6 +3,7 @@ message(STATUS "\tSources")
 
 add_executable(${CMAKE_PROJECT_NAME}
     main.cpp
+    uart_setup/uart_setup.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME}
