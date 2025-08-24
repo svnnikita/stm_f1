@@ -5,6 +5,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     main.cpp
     uart_setup/uart_setup.cpp
     uart_data_processing/uart_data_processing.cpp
+    digitalFilter_operations/digitalFilter_operations.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME}
@@ -30,7 +31,7 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
     COMMAND cmake -E copy ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME} ${CMAKE_BINARY_DIR}/firmware
 )
 
-# Размер прошивки (добавьте этот блок)
+# Размер прошивки
 find_program(SIZE_UTIL arm-none-eabi-size)
 
 if(SIZE_UTIL)
