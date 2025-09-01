@@ -23,51 +23,52 @@ void timer_setup(void) {
     nvic_enable_irq(NVIC_TIM2_IRQ);
 }
 
-struct FilterBuffer zbuff = {
-    .buffer = {0}, 
-    .in = zbuff.buffer, 
-    .out = zbuff.buffer + 1  // Или другую начальную позицию
-};
 
-struct out_values fout = {};       // промежуточне значений
-struct out_values* fout_ptr = &fout; 
+// Объявим буфферы для хранения задержек
+struct FilterBuffer zbuff_a1b1 = { .buffer = {0}, 
+                                   .in = zbuff_a1b1.buffer, 
+                                   .out = zbuff_a1b1.buffer + 1 };
 
-struct coefs fcoefs = {3276, 24576, -11469};    // коэффициенты фильтра
+struct FilterBuffer zbuff_a2b2 = { .buffer = {0}, 
+                                   .in = zbuff_a2b2.buffer, 
+                                   .out = zbuff_a2b2.buffer + 1 };
+
+struct FilterBuffer zbuff_a3b3 = { .buffer = {0}, 
+                                   .in = zbuff_a3b3.buffer, 
+                                   .out = zbuff_a3b3.buffer + 1 };
+
+struct FilterBuffer zbuff_a4b4 = { .buffer = {0}, 
+                                   .in = zbuff_a4b4.buffer, 
+                                   .out = zbuff_a4b4.buffer + 1 };
+  
+
+struct out_values fout = {};       // промежуточные значения при умножении отсчета на коэффициент
+struct out_values* fout_ptr = &fout;
+
+struct coefs fcoefs = {233008, -321612, 203811, -50202, 512, 0, -1026, 0, 512};    // коэффициенты фильтра
 struct coefs* fcoefs_ptr = &fcoefs; 
 
 // Объявляем глобальные переменные для обработки в прерывании
-int32_t X_in = 16384;
-int32_t* X_in_ptr = &X_in;
+int64_t X_in = 65536;
+int64_t* X_in_ptr = &X_in;
+
 
 // Обработчик прерывания таймера
 void tim2_isr(void) {
     if (timer_get_flag(TIM2, TIM_SR_UIF)) {
+    
         // Сбрасываем флаг прерывания
         timer_clear_flag(TIM2, TIM_SR_UIF);
 
-        // Вычисляем один отсчет фильтра
-        fout_ptr->b0_out = mult_p(&fcoefs_ptr->b0, X_in_ptr);   // Умножаем вход на B0
-        fout_ptr->b0_out /= *X_in_ptr;
-       
-        fout_ptr->y_out = sum_p(&fout_ptr->b0_out, zbuff.out);    // Результат проходит на выход
-        
-        fout_ptr->a1_out = mult_p(&fout_ptr->y_out, &fcoefs_ptr->a1);   // Y умножается на A1
-        fout_ptr->a1_out /= *X_in_ptr;
-        
-        fout_ptr->b1_out = mult_p(&fcoefs_ptr->b1, X_in_ptr);   // X умножается на B1
-        fout_ptr->b1_out /= *X_in_ptr;
+        // Вычисляем выходной отсчет фильтра
+        Calculating_Counts( fout_ptr, fcoefs_ptr, X_in_ptr, 
+                            &zbuff_a1b1, &zbuff_a2b2, &zbuff_a3b3, &zbuff_a4b4);
 
-        *(zbuff.in) = sum_p(&fout_ptr->a1_out, &fout_ptr->b1_out);            // Сумма произведений записывается в Z.in
-        
-        // Циклическое перемещение указателей буфера
-        zbuff.in = (zbuff.in == &zbuff.buffer[BUFF_SIZE - 1]) ? 
-                        zbuff.buffer : 
-                        zbuff.in + 1;
+        Moving_Pointers(&zbuff_a1b1);
+        Moving_Pointers(&zbuff_a2b2);
+        Moving_Pointers(&zbuff_a3b3);
+        Moving_Pointers(&zbuff_a4b4);
 
-        zbuff.out = (zbuff.out == &zbuff.buffer[BUFF_SIZE - 1]) ? 
-                         zbuff.buffer : 
-                         zbuff.out + 1;
-        
         // Отправка результата через UART
         UART_Send_Decimal(USART2, fout_ptr->y_out);
         UART_Send_String(USART2, "\n\r");
