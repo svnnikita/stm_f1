@@ -4,8 +4,8 @@ set(CMAKE_TOOLCHAIN_FILE cmake/arm-none-eabi-gcc.cmake)
 
 
 #================================================================================
-project(stm_f1 LANGUAGES CXX C ASM)
-set(DEVICE STM32F103C8T6)
+project(thermal_imager LANGUAGES CXX C ASM)
+set(DEVICE STM32F303CBT6)
 
 
 #================================================================================

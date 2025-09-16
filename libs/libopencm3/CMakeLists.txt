@@ -1,7 +1,7 @@
 message(STATUS "\tLibopencm3")
 
 if(NOT DEVICE)
-  message(FATAL_ERROR "Device must be defined at project level!\tExample: set(DEVICE stm32f103c8t6).")
+  message(FATAL_ERROR "Device must be defined at project level!\tExample: set(DEVICE stm32f303cbt6).")
 endif()
 
 

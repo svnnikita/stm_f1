@@ -1,1 +1,1 @@
-# stm_f1
+# thermal_imager
