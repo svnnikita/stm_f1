@@ -48,7 +48,7 @@ void UART2_GYMCU90640_Setup(void) {
     nvic_enable_irq(NVIC_USART2_IRQ);
 
     // Включение передачи по DMA для UART2
-   // usart_enable_tx_dma(USART2);
+    // usart_enable_tx_dma(USART2);
 
     // включаем UART2
     usart_enable(USART2);
